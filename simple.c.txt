@@ -1,0 +1,185 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+struct Contact {
+    char name[50];
+    char phone[15];
+    char email[50];
+};
+
+void addContact();
+void listContacts();
+void searchContact();
+void deleteContact();
+void menu();
+
+const char *FILENAME = "contacts.txt";
+
+int main() {
+    menu();
+    return 0;
+}
+
+void menu() {
+    int choice;
+
+    while (1) {
+        printf("\n--- Contact Management System ---\n");
+        printf("1. Add Contact\n");
+        printf("2. List Contacts\n");
+        printf("3. Search Contact\n");
+        printf("4. Delete Contact\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // clear newline
+
+        switch (choice) {
+            case 1:
+                addContact();
+                break;
+            case 2:
+                listContacts();
+                break;
+            case 3:
+                searchContact();
+                break;
+            case 4:
+                deleteContact();
+                break;
+            case 5:
+                printf("Exiting...\n");
+                exit(0);
+            default:
+                printf("Invalid choice. Try again.\n");
+        }
+    }
+}
+
+void addContact() {
+    FILE *fp;
+    struct Contact c;
+
+    fp = fopen(FILENAME, "a");
+
+    if (fp == NULL) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    printf("Enter name: ");
+    fgets(c.name, sizeof(c.name), stdin);
+    c.name[strcspn(c.name, "\n")] = 0; // remove newline
+
+    printf("Enter phone: ");
+    fgets(c.phone, sizeof(c.phone), stdin);
+    c.phone[strcspn(c.phone, "\n")] = 0;
+
+    printf("Enter email: ");
+    fgets(c.email, sizeof(c.email), stdin);
+    c.email[strcspn(c.email, "\n")] = 0;
+
+    fwrite(&c, sizeof(c), 1, fp);
+    fclose(fp);
+
+    printf("Contact added successfully!\n");
+}
+
+void listContacts() {
+    FILE *fp;
+    struct Contact c;
+    int count = 0;
+
+    fp = fopen(FILENAME, "r");
+
+    if (fp == NULL) {
+        printf("No contacts found.\n");
+        return;
+    }
+
+    printf("\n--- Contact List ---\n");
+
+    while (fread(&c, sizeof(c), 1, fp)) {
+        printf("\nName: %s\nPhone: %s\nEmail: %s\n", c.name, c.phone, c.email);
+        count++;
+    }
+
+    if (count == 0)
+        printf("No contacts to display.\n");
+
+    fclose(fp);
+}
+
+void searchContact() {
+    FILE *fp;
+    struct Contact c;
+    char search[50];
+    int found = 0;
+
+    fp = fopen(FILENAME, "r");
+
+    if (fp == NULL) {
+        printf("No contacts found.\n");
+        return;
+    }
+
+    printf("Enter name to search: ");
+    fgets(search, sizeof(search), stdin);
+    search[strcspn(search, "\n")] = 0;
+
+    while (fread(&c, sizeof(c), 1, fp)) {
+        if (strcasecmp(c.name, search) == 0) {
+            printf("\nContact found:\n");
+            printf("Name: %s\nPhone: %s\nEmail: %s\n", c.name, c.phone, c.email);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found)
+        printf("Contact not found.\n");
+
+    fclose(fp);
+}
+
+void deleteContact() {
+    FILE *fp, *temp;
+    struct Contact c;
+    char deleteName[50];
+    int found = 0;
+
+    fp = fopen(FILENAME, "r");
+    temp = fopen("temp.txt", "w");
+
+    if (fp == NULL || temp == NULL) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    printf("Enter name of contact to delete: ");
+    fgets(deleteName, sizeof(deleteName), stdin);
+    deleteName[strcspn(deleteName, "\n")] = 0;
+
+    while (fread(&c, sizeof(c), 1, fp)) {
+        if (strcasecmp(c.name, deleteName) != 0) {
+            fwrite(&c, sizeof(c), 1, temp);
+        } else {
+            found = 1;
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove(FILENAME);
+    rename("temp.txt", FILENAME);
+
+    if (found)
+        printf("Contact deleted successfully.\n");
+    else
+        printf("Contact not found.\n");
+}
+
